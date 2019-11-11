@@ -908,16 +908,35 @@ void PipelineDumper::DumpGraphicsPipelineInfo(
 // Builds hash code from graphics pipline build info.
 MetroHash::Hash PipelineDumper::GenerateHashForGraphicsPipeline(
     const GraphicsPipelineBuildInfo* pPipeline,   // [in] Info to build a graphics pipeline
-    bool                            isCacheHash   // TRUE if the hash is used by shader cache
+    bool                            isCacheHash,  // TRUE if the hash is used by shader cache
+    uint32_t                        stage
     )
 {
     MetroHash64 hasher;
 
-    UpdateHashForPipelineShaderInfo(ShaderStageVertex, &pPipeline->vs, isCacheHash, &hasher);
-    UpdateHashForPipelineShaderInfo(ShaderStageTessControl, &pPipeline->tcs, isCacheHash, &hasher);
-    UpdateHashForPipelineShaderInfo(ShaderStageTessEval, &pPipeline->tes, isCacheHash, &hasher);
-    UpdateHashForPipelineShaderInfo(ShaderStageGeometry, &pPipeline->gs, isCacheHash, &hasher);
-    UpdateHashForPipelineShaderInfo(ShaderStageFragment, &pPipeline->fs, isCacheHash, &hasher);
+    switch (stage) {
+      case ShaderStageVertex:
+        UpdateHashForPipelineShaderInfo(ShaderStageVertex, &pPipeline->vs, isCacheHash, &hasher);
+        break;
+      case ShaderStageTessControl:
+        UpdateHashForPipelineShaderInfo(ShaderStageTessControl, &pPipeline->tcs, isCacheHash, &hasher);
+        break;
+      case ShaderStageTessEval:
+        UpdateHashForPipelineShaderInfo(ShaderStageTessEval, &pPipeline->tes, isCacheHash, &hasher);
+        break;
+      case ShaderStageGeometry:
+        UpdateHashForPipelineShaderInfo(ShaderStageGeometry, &pPipeline->gs, isCacheHash, &hasher);
+        break;
+      case ShaderStageFragment:
+        UpdateHashForPipelineShaderInfo(ShaderStageFragment, &pPipeline->fs, isCacheHash, &hasher);
+        break;
+      default:
+        UpdateHashForPipelineShaderInfo(ShaderStageVertex, &pPipeline->vs, isCacheHash, &hasher);
+        UpdateHashForPipelineShaderInfo(ShaderStageTessControl, &pPipeline->tcs, isCacheHash, &hasher);
+        UpdateHashForPipelineShaderInfo(ShaderStageTessEval, &pPipeline->tes, isCacheHash, &hasher);
+        UpdateHashForPipelineShaderInfo(ShaderStageGeometry, &pPipeline->gs, isCacheHash, &hasher);
+        UpdateHashForPipelineShaderInfo(ShaderStageFragment, &pPipeline->fs, isCacheHash, &hasher);
+    }
 
     hasher.Update(pPipeline->iaState.deviceIndex);
     UpdateHashForVertexInputState(pPipeline->pVertexInput, &hasher);

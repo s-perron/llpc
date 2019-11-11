@@ -129,6 +129,11 @@ public:
                                         uint32_t                        forceLoopUnrollCount,
                                         ElfPackage*                     pPipelineElf);
 
+    Result BuildPipelineUsingRelocatableElf(Context*                                   pContext,
+                                            llvm::ArrayRef<const PipelineShaderInfo*>  shaderInfo,
+                                            uint32_t                                   forceLoopUnrollCount,
+                                            ElfPackage*                                pPipelineElf);
+
     Result BuildPipelineInternal(Context*                                   pContext,
                                  llvm::ArrayRef<const PipelineShaderInfo*>  shaderInfo,
                                  uint32_t                                   forceLoopUnrollCount,
@@ -184,6 +189,8 @@ private:
     void ReleaseContext(Context* pContext) const;
 
     bool RunPasses(PassManager* pPassMgr, llvm::Module* pModule) const;
+    void LinkRelocatableShaderElf(ElfPackage *elf, ElfPackage* pPipelineElf, Context* pContext);
+
     // -----------------------------------------------------------------------------------------------------------------
 
     std::vector<std::string>      m_options;          // Compilation options

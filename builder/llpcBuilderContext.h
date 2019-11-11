@@ -107,6 +107,9 @@ public:
     // Adds target passes to pass manager, depending on "-filetype" and "-emit-llvm" options
     void AddTargetPasses(Llpc::PassManager& passMgr, Timer* pCodeGenTimer, raw_pwrite_stream& outStream);
 
+    void SetBuildRelocatableElf(bool v) { m_buildRelocatableElf = v; }
+    bool BuildingRelocatableElf() { return m_buildRelocatableElf; }
+
 private:
     LLPC_DISALLOW_DEFAULT_CTOR(BuilderContext)
     LLPC_DISALLOW_COPY_AND_ASSIGN(BuilderContext)
@@ -117,6 +120,7 @@ private:
     LLVMContext&                    m_context;                  // LLVM context
     TargetMachine*                  m_pTargetMachine = nullptr; // Target machine
     TargetInfo*                     m_pTargetInfo = nullptr;    // Target info
+    bool                            m_buildRelocatableElf = false;
 };
 
 } // Llpc

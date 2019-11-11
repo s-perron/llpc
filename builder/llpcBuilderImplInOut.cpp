@@ -29,6 +29,7 @@
  ***********************************************************************************************************************
  */
 #include "llpcBuilderImpl.h"
+#include "llpcBuilderContext.h"
 #include "llpcInternal.h"
 #include "llpcPipelineState.h"
 
@@ -348,10 +349,20 @@ void BuilderImplInOut::MarkGenericInputOutputUsage(
 
     if ((isOutput == false) || (m_shaderStage != ShaderStageGeometry))
     {
+        bool keepAllLocations = false;
+        if (GetBuilderContext()->BuildingRelocatableElf()) {
+          if (m_shaderStage == ShaderStageVertex && isOutput) {
+            keepAllLocations = true;
+          }
+          if (m_shaderStage == ShaderStageFragment && !isOutput) {
+            keepAllLocations = true;
+          }
+        }
+        uint32_t s = (keepAllLocations ? 0 : location);
         // Non-GS-output case.
-        for (uint32_t i = 0; i < locationCount; ++i)
+        for (uint32_t i = s; i < location + locationCount; ++i)
         {
-            (*pInOutLocMap)[location + i] = InvalidValue;
+            (*pInOutLocMap)[i] = InvalidValue;
         }
     }
     else

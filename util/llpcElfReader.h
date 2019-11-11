@@ -461,18 +461,22 @@ public:
     uint32_t GetSectionCount();
     Result GetSectionDataBySectionIndex(uint32_t secIdx, SectionBuffer** ppSectionData) const;
     Result GetSectionDataBySortingIndex(uint32_t sortIdx, uint32_t* pSecIdx, SectionBuffer** ppSectionData) const;
+    Result GetTextSectionData(SectionBuffer** ppSectionData) const
+    {
+        return GetSectionDataBySectionIndex(m_textSecIdx, ppSectionData);
+    }
 
     // Determine if a section with the specified name is present in this ELF.
     bool IsSectionPresent(const char* pName) const { return (m_map.find(pName) != m_map.end()); }
 
-    uint32_t GetSymbolCount();
+    uint32_t GetSymbolCount() const;
     void GetSymbol(uint32_t idx, ElfSymbol* pSymbol);
 
     bool IsValidSymbol(const char* pSymbolName);
 
-    ElfNote GetNote(Util::Abi::PipelineAbiNoteType noteType);
+    ElfNote GetNote(Util::Abi::PipelineAbiNoteType noteType) const;
 
-    void GetSymbolsBySectionIndex(uint32_t secIndx, std::vector<ElfSymbol>& secSymbols);
+    void GetSymbolsBySectionIndex(uint32_t secIndx, std::vector<ElfSymbol>& secSymbols) const;
 
     uint32_t GetRelocationCount();
     void GetRelocation(uint32_t idx, ElfReloc* pReloc);
@@ -508,6 +512,7 @@ private:
     int32_t   m_symSecIdx;      // Index of symbol section
     int32_t   m_relocSecIdx;    // Index of relocation section
     int32_t   m_strtabSecIdx;   // Index of string table section
+    int32_t   m_textSecIdx;     // Index of string table section
 
     llvm::msgpack::Document      m_document;         // MsgPack document
     std::vector<MsgPackIterator> m_iteratorStack;    // MsgPack iterator stack
