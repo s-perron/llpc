@@ -69,6 +69,8 @@ public:
                               ElfNote*       pNewNote);
 
     Result ReadFromBuffer(const void* pBuffer, size_t bufSize);
+    Result ReadFromBuffer(const ElfReader<Elf>& reader);
+
 
     void MergeElfBinary(Context*          pContext,
                         const BinaryData* pFragmentElf,
