@@ -105,6 +105,8 @@ llvm::ModulePass *createPatchResourceCollect();
 llvm::ModulePass *createPatchSetupTargetFeatures();
 llvm::ModulePass *createPatchWorkarounds();
 
+void generateNullFragmentShader(llvm::Module &module);
+
 class PipelineState;
 
 // =====================================================================================================================

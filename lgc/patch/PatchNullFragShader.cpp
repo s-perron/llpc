@@ -73,6 +73,47 @@ ModulePass *lgc::createPatchNullFragShader() {
   return new PatchNullFragShader();
 }
 
+void lgc::generateNullFragmentShader(Module &module) {
+// Create the null fragment shader:
+// define void @llpc.shader.FS.null() !spirv.ExecutionModel !5
+// {
+// .entry:
+//     %0 = tail call float @llpc.input.import.generic.f32(i32 0, i32 0, i32 0, i32 1)
+//     tail call void @llpc.output.export.generic.f32(i32 0, i32 0, float %0)
+//     ret void
+// }
+
+    // Create type of new function: void()
+    auto entryPointTy = FunctionType::get(Type::getVoidTy(module.getContext()), ArrayRef<Type *>(), false);
+
+    // Create function for the null fragment shader entrypoint.
+    auto entryPoint = Function::Create(entryPointTy, GlobalValue::ExternalLinkage, lgcName::NullFsEntryPoint, &module);
+    entryPoint->setDLLStorageClass(GlobalValue::DLLExportStorageClass);
+  entryPoint->setCallingConv(CallingConv::AMDGPU_PS);
+
+    // Create its basic block, and terminate it with return.
+    auto block = BasicBlock::Create(module.getContext(), "", entryPoint, nullptr);
+    auto insertPos = ReturnInst::Create(module.getContext(), block);
+
+    // Add its code. First the import.
+    auto zero = ConstantInt::get(Type::getInt32Ty(module.getContext()), 0);
+    auto one = ConstantInt::get(Type::getInt32Ty(module.getContext()), 1);
+    Value *importArgs[] = {zero, zero, zero, one};
+    auto inputTy = Type::getFloatTy(module.getContext());
+    std::string importName = lgcName::InputImportGeneric;
+    addTypeMangling(inputTy, importArgs, importName);
+    auto input = emitCall(importName, inputTy, importArgs, {}, insertPos);
+
+    // Then the export.
+    Value *exportArgs[] = {zero, zero, input};
+    std::string exportName = lgcName::OutputExportGeneric;
+    addTypeMangling(Type::getVoidTy(module.getContext()), exportArgs, exportName);
+    emitCall(exportName, Type::getVoidTy(module.getContext()), exportArgs, {}, insertPos);
+
+    // Set the shader stage on the new function.
+    setShaderStage(entryPoint, ShaderStageFragment);
+  }
+
 // =====================================================================================================================
 // Run the pass on the specified LLVM module.
 //
@@ -89,53 +130,14 @@ bool PatchNullFragShader::runOnModule(Module &module) {
     return false;
 
   const bool hasCs = pipelineState->hasShaderStage(ShaderStageCompute);
-  const bool hasVs = pipelineState->hasShaderStage(ShaderStageVertex);
-  const bool hasTes = pipelineState->hasShaderStage(ShaderStageTessEval);
-  const bool hasGs = pipelineState->hasShaderStage(ShaderStageGeometry);
   const bool hasFs = pipelineState->hasShaderStage(ShaderStageFragment);
-  if (hasCs || hasFs || (!hasVs && !hasTes && !hasGs)) {
-    // This is an incomplete graphics pipeline from the amdllpc command-line tool, or a compute pipeline, or a
-    // graphics pipeline that already has a fragment shader. A null fragment shader is not required.
+  if (hasCs || hasFs) {
+    // This is a compute pipeline, or a graphics pipeline that already has a fragment shader. A null fragment shader
+    // is not required.
     return false;
   }
 
-  // Create the null fragment shader:
-  // define void @llpc.shader.FS.null() !spirv.ExecutionModel !5
-  // {
-  // .entry:
-  //     %0 = tail call float @llpc.input.import.generic.f32(i32 0, i32 0, i32 0, i32 1)
-  //     tail call void @llpc.output.export.generic.f32(i32 0, i32 0, float %0)
-  //     ret void
-  // }
-
-  // Create type of new function: void()
-  auto entryPointTy = FunctionType::get(Type::getVoidTy(*m_context), ArrayRef<Type *>(), false);
-
-  // Create function for the null fragment shader entrypoint.
-  auto entryPoint = Function::Create(entryPointTy, GlobalValue::ExternalLinkage, lgcName::NullFsEntryPoint, &module);
-  entryPoint->setDLLStorageClass(GlobalValue::DLLExportStorageClass);
-
-  // Create its basic block, and terminate it with return.
-  auto block = BasicBlock::Create(*m_context, "", entryPoint, nullptr);
-  auto insertPos = ReturnInst::Create(*m_context, block);
-
-  // Add its code. First the import.
-  auto zero = ConstantInt::get(Type::getInt32Ty(*m_context), 0);
-  auto one = ConstantInt::get(Type::getInt32Ty(*m_context), 1);
-  Value *importArgs[] = {zero, zero, zero, one};
-  auto inputTy = Type::getFloatTy(*m_context);
-  std::string importName = lgcName::InputImportGeneric;
-  addTypeMangling(inputTy, importArgs, importName);
-  auto input = emitCall(importName, inputTy, importArgs, {}, insertPos);
-
-  // Then the export.
-  Value *exportArgs[] = {zero, zero, input};
-  std::string exportName = lgcName::OutputExportGeneric;
-  addTypeMangling(Type::getVoidTy(*m_context), exportArgs, exportName);
-  emitCall(exportName, Type::getVoidTy(*m_context), exportArgs, {}, insertPos);
-
-  // Set the shader stage on the new function.
-  setShaderStage(entryPoint, ShaderStageFragment);
+  generateNullFragmentShader(module);
 
   // Initialize shader info.
   auto resUsage = pipelineState->getShaderResourceUsage(ShaderStageFragment);
@@ -154,6 +156,7 @@ bool PatchNullFragShader::runOnModule(Module &module) {
 
   return true;
 }
+
 
 // =====================================================================================================================
 // Initializes the pass

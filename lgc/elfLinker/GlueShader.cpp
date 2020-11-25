@@ -28,6 +28,7 @@
  * @brief LGC source file: Glue shader (fetch shader, parameter/color export shader) generated in linking
  ***********************************************************************************************************************
  */
+#include <include/lgc/patch/Patch.h>
 #include "GlueShader.h"
 #include "lgc/BuilderBase.h"
 #include "lgc/patch/FragColorExport.h"
@@ -113,43 +114,79 @@ private:
 
 // =====================================================================================================================
 // A color export shader
-class ColorExportShader : public GlueShader {
+    class ColorExportShader : public GlueShader {
+    public:
+        ColorExportShader(PipelineState *pipelineState, ArrayRef<ColorExportInfo> exports);
+        ~ColorExportShader() override {}
+
+        // Get the string for this glue shader. This is some encoding or hash of the inputs to the create*Shader function
+        // that the front-end client can use as a cache key to avoid compiling the same glue shader more than once.
+        StringRef getString() override;
+
+        // Get the symbol name of the main shader that this glue shader is prolog or epilog for.
+        StringRef getMainShaderName() override;
+
+        // Get the symbol name of the glue shader.
+        StringRef getGlueShaderName() override { return "color_export_shader"; }
+
+        // Get whether this glue shader is a prolog (rather than epilog) for its main shader.
+        bool isProlog() override { return false; }
+
+        // Get the name of this glue shader.
+        StringRef getName() const override { return "color export shader"; }
+
+    protected:
+        // Generate the glue shader to IR module
+        Module *generate() override;
+
+    private:
+        Function *createColorExportFunc();
+
+        // The information stored here is all that is needed to generate the color export shader. We deliberately do not
+        // have access to PipelineState, so we can hash the information here and let the front-end use it as the
+        // key for a cache of glue shaders.
+        SmallVector<ColorExportInfo, 8> m_exports;
+        ExportFormat m_exportFormat[MaxColorTargets]; // The export format for each hw color target.
+        // The encoded or hashed (in some way) single string version of the above.
+        std::string m_shaderString;
+        PipelineState *m_pipelineState; // The pipeline state.  Used to set meta data information.
+        bool m_killEnabled;             // True if this fragement shader has kill enabled.
+    };
+
+// =====================================================================================================================
+// A null fragment shader
+class NullFragementShader : public GlueShader {
 public:
-  ColorExportShader(PipelineState *pipelineState, ArrayRef<ColorExportInfo> exports);
-  ~ColorExportShader() override {}
+  NullFragementShader(LgcContext *lgcContext) : GlueShader(lgcContext) {}
+  ~NullFragementShader() override {}
 
   // Get the string for this glue shader. This is some encoding or hash of the inputs to the create*Shader function
   // that the front-end client can use as a cache key to avoid compiling the same glue shader more than once.
-  StringRef getString() override;
+  StringRef getString() override {
+    return "null";
+  }
 
   // Get the symbol name of the main shader that this glue shader is prolog or epilog for.
-  StringRef getMainShaderName() override;
+  StringRef getMainShaderName() override {
+    return getEntryPointName(CallingConv::AMDGPU_PS, /*isFetchlessVs=*/false);
+  }
 
   // Get the symbol name of the glue shader.
-  StringRef getGlueShaderName() override { return "color_export_shader"; }
+  StringRef getGlueShaderName() override {
+    return getEntryPointName(CallingConv::AMDGPU_PS, /*isFetchlessVs=*/false);
+  }
 
   // Get whether this glue shader is a prolog (rather than epilog) for its main shader.
   bool isProlog() override { return false; }
 
   // Get the name of this glue shader.
-  StringRef getName() const override { return "color export shader"; }
+  StringRef getName() const override { return "null fragment shader"; }
 
 protected:
   // Generate the glue shader to IR module
   Module *generate() override;
 
 private:
-  Function *createColorExportFunc();
-
-  // The information stored here is all that is needed to generate the color export shader. We deliberately do not
-  // have access to PipelineState, so we can hash the information here and let the front-end use it as the
-  // key for a cache of glue shaders.
-  SmallVector<ColorExportInfo, 8> m_exports;
-  ExportFormat m_exportFormat[MaxColorTargets]; // The export format for each hw color target.
-  // The encoded or hashed (in some way) single string version of the above.
-  std::string m_shaderString;
-  PipelineState *m_pipelineState; // The pipeline state.  Used to set meta data information.
-  bool m_killEnabled;             // True if this fragement shader has kill enabled.
 };
 } // anonymous namespace
 
@@ -165,6 +202,12 @@ GlueShader *GlueShader::createFetchShader(PipelineState *pipelineState, ArrayRef
 std::unique_ptr<GlueShader> GlueShader::createColorExportShader(PipelineState *pipelineState,
                                                                 ArrayRef<ColorExportInfo> exports) {
   return std::make_unique<ColorExportShader>(pipelineState, exports);
+}
+
+// =====================================================================================================================
+// Create a null fragement shader object
+std::unique_ptr<GlueShader> GlueShader::createNullFragmentShader(PipelineState *pipelineState) {
+  return std::make_unique<NullFragementShader>(pipelineState->getLgcContext());
 }
 
 // =====================================================================================================================
@@ -434,4 +477,16 @@ Function *ColorExportShader::createColorExportFunc() {
   BuilderBase builder(block);
   builder.CreateRetVoid();
   return func;
+}
+
+Module *NullFragementShader::generate() {
+  // Create the module.
+  Module *module = new Module("nullFragmentShader", getContext());
+  TargetMachine *targetMachine = m_lgcContext->getTargetMachine();
+  module->setTargetTriple(targetMachine->getTargetTriple().getTriple());
+  module->setDataLayout(targetMachine->createDataLayout());
+
+  // Generate the null fragment shader
+  lgc::generateNullFragmentShader(*module);
+  return module;
 }
