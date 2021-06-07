@@ -146,7 +146,7 @@ Function *ShaderMerger::generateLsHsEntryPoint(Function *lsEntryPoint, Function 
   Function *entryPoint = Function::Create(entryPointTy, GlobalValue::ExternalLinkage, lgcName::LsHsEntryPoint);
   entryPoint->setDLLStorageClass(GlobalValue::DLLExportStorageClass);
   auto module = hsEntryPoint->getParent();
-  module->getFunctionList().insert(hsEntryPoint->getIterator(), entryPoint);
+  module->getFunctionList().push_front(entryPoint);
 
   entryPoint->addFnAttr("amdgpu-flat-work-group-size",
                         "128,128"); // Force s_barrier to be present (ignore optimization)
@@ -557,7 +557,7 @@ Function *ShaderMerger::generateEsGsEntryPoint(Function *esEntryPoint, Function 
   // Create the entrypoint for the merged shader, and insert it just before the old GS.
   Function *entryPoint = Function::Create(entryPointTy, GlobalValue::ExternalLinkage, lgcName::EsGsEntryPoint);
   entryPoint->setDLLStorageClass(GlobalValue::DLLExportStorageClass);
-  module->getFunctionList().insert(gsEntryPoint->getIterator(), entryPoint);
+  module->getFunctionList().push_front(entryPoint);
 
   entryPoint->addFnAttr("amdgpu-flat-work-group-size",
                         "128,128"); // Force s_barrier to be present (ignore optimization)
