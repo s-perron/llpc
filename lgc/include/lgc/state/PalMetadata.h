@@ -39,6 +39,7 @@
 #include "lgc/Pipeline.h"
 #include "lgc/state/AbiMetadata.h"
 #include "llvm/BinaryFormat/MsgPackDocument.h"
+#include <map>
 
 namespace llvm {
 class Module;
@@ -228,6 +229,18 @@ private:
   llvm::msgpack::DocNode *m_userDataLimit;  // Maximum so far number of user data dwords used
   llvm::msgpack::DocNode *m_spillThreshold; // Minimum so far dword offset used in user data spill table
   llvm::SmallString<0> m_fsInputMappingsBlob; // Buffer for returning FS input mappings blob to LGC client
+  unsigned int getUserDataCount(unsigned int callingConv);
+  unsigned getCallingConvenctionForFirstHardwareShaderStage();
+  unsigned getFirstUserDataReg(unsigned callingConv);
+  unsigned getNumberOfSgprsBeforeUserData(unsigned conv);
+  unsigned int
+  getOffsetOfUserDataReg(std::map<llvm::msgpack::DocNode, llvm::msgpack::DocNode>::iterator firstUserDataNode,
+                         UserDataMapping userDataMapping);
+  unsigned getNumberOfSgprsAfterUserData(unsigned callingConv);
+  unsigned getVertexIdOffset(unsigned callingConv);
+  unsigned getInstanceIdOffset(unsigned callingConv);
+  unsigned getVgprCount(unsigned callingConv);
+  bool isWave32(unsigned callingConv);
 };
 
 } // namespace lgc

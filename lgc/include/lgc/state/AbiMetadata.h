@@ -233,6 +233,7 @@ constexpr unsigned mmSPI_SHADER_PGM_RSRC1_PS = 0x2C0A;
 // RSRC2 register. We only specify one, as each graphics shader stage has its RSRC2 register at the same
 // offset (-1) from its USER_DATA_*_0 register.
 constexpr unsigned mmSPI_SHADER_PGM_RSRC2_VS = 0x2C4B;
+constexpr unsigned mmSPI_SHADER_PGM_RSRC2_GS = 0x2C8B;
 
 // Other SPI register numbers in PAL metadata
 constexpr unsigned int mmPA_CL_CLIP_CNTL = 0xA204;
