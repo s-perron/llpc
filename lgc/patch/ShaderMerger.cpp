@@ -531,11 +531,13 @@ FunctionType *ShaderMerger::generateEsGsEntryPointType(uint64_t *inRegMask) cons
     argTys.push_back(Type::getInt32Ty(*m_context)); // Instance ID
   }
 
-  SmallVector<VertexFetchInfo> fetches;
-  m_pipelineState->getPalMetadata()->getVertexFetchInfo(fetches);
-  m_pipelineState->getPalMetadata()->addVertexFetchInfo(fetches);
-  for (const auto &fetchInfo : fetches) {
-    argTys.push_back(fetchInfo.ty);
+  if (m_pipelineState->getPalMetadata()->getVertexFetchCount() != 0) {
+    SmallVector<VertexFetchInfo> fetches;
+    m_pipelineState->getPalMetadata()->getVertexFetchInfo(fetches);
+    m_pipelineState->getPalMetadata()->addVertexFetchInfo(fetches);
+    for (const auto &fetchInfo : fetches) {
+      argTys.push_back(fetchInfo.ty);
+    }
   }
 
   return FunctionType::get(Type::getVoidTy(*m_context), argTys, false);
