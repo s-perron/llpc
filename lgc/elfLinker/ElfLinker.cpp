@@ -222,6 +222,7 @@ private:
   StringMap<unsigned> m_stringMap;                           // Map from string to string table index
   std::string m_notes;                                       // Notes to go in .note section
   bool m_doneInputs = false;                                 // Set when caller has done adding inputs
+  bool ContainsASingleShader(ElfInput &elf);
 };
 
 } // anonymous namespace
@@ -751,7 +752,9 @@ bool ElfLinkerImpl::insertGlueShaders() {
               getPipelineState()->setError("Shader " + mainName + " is not at the start of its text section");
               return false;
             }
-            elfInput.reduceAlign = cantFail(section->getName());
+
+            if (ContainsASingleShader(elfInput))
+              elfInput.reduceAlign = cantFail(section->getName());
             insertPos = idx;
           } else {
             // For an epilog glue shader, we can only cope if the main shader is the last one in its text section.
@@ -776,6 +779,17 @@ bool ElfLinkerImpl::insertGlueShaders() {
     // Insert the glue shader in the appropriate place in the list of ELFs.
     assert(insertPos != UINT_MAX && "Main shader not found for glue shader");
     m_elfInputs.insert(m_elfInputs.begin() + insertPos, std::move(glueElfInput));
+  }
+  return true;
+}
+bool ElfLinkerImpl::ContainsASingleShader(ElfInput &elf) {
+  bool foundAFunction = false;
+  for (auto sym : elf.objectFile->symbols()) {
+    if (cantFail(sym.getType()) != llvm::object::SymbolRef::Type::ST_Function)
+      continue;
+    if (foundAFunction)
+      return false;
+    foundAFunction = true;
   }
   return true;
 }
