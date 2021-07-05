@@ -38,6 +38,7 @@
 #include "lgc/CommonDefs.h"
 #include "lgc/Pipeline.h"
 #include "lgc/state/AbiMetadata.h"
+#include "lgc/state/AbiUnlinked.h"
 #include "llvm/BinaryFormat/MsgPackDocument.h"
 
 namespace llvm {
@@ -191,6 +192,8 @@ public:
 
   // Erase the PAL metadata for FS input mappings. Used when finalizing the PAL metadata in the link.
   void eraseFragmentInputInfo();
+
+  void updateCbShaderMask(llvm::ArrayRef<ColorExportInfo> exportInfo, llvm::ArrayRef<ExportFormat> exportFormats);
 
 private:
   // Initialize the PalMetadata object after reading in already-existing PAL metadata if any

@@ -969,3 +969,19 @@ void PalMetadata::eraseFragmentInputInfo() {
   if (array2It != m_pipelineNode.end())
     m_pipelineNode.erase(array2It);
 }
+
+// =====================================================================================================================
+// Update the CB_SHADER_MASK using the given export information and the pipeline state.
+void PalMetadata::updateCbShaderMask(llvm::ArrayRef<ColorExportInfo> exportInfo, ArrayRef<ExportFormat> exportFormats) {
+  unsigned cbShaderMask = 0;
+  for (const ColorExportInfo &ex : exportInfo) {
+    if (ex.hwColorTarget == MaxColorTargets)
+      continue;
+    if (exportFormats[ex.hwColorTarget] == EXP_FORMAT_ZERO)
+      continue;
+    unsigned componentCount = (ex.ty->isVectorTy() ? cast<VectorType>(ex.ty)->getElementCount().getValue() : 1);
+    unsigned channelMask = ((1 << componentCount) - 1);
+    cbShaderMask |= (channelMask << (4 * ex.location));
+  }
+  setRegister(mmCB_SHADER_MASK, cbShaderMask);
+}

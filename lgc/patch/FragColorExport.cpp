@@ -495,6 +495,7 @@ bool LowerFragColorExport::runOnModule(Module &module) {
   const auto &builtInUsage = m_resUsage->builtInUsage.fs;
   bool hasDepthExpFmtZero = !(builtInUsage.sampleMask || builtInUsage.fragStencilRef || builtInUsage.fragDepth);
   m_pipelineState->getPalMetadata()->updateSpiShaderColFormat(m_info, hasDepthExpFmtZero, builtInUsage.discard);
+  m_pipelineState->getPalMetadata()->updateCbShaderMask(m_info, exportFormat);
   return !m_info.empty() || dummyExport;
 }
 
@@ -567,9 +568,11 @@ Value *LowerFragColorExport::getOutputValue(ArrayRef<Value *> expFragColor, unsi
   unsigned compCount = expFragColor.size();
   assert(compCount <= 4);
 
+  /*
   // Set CB shader mask
   const unsigned channelMask = ((1 << compCount) - 1);
   m_resUsage->inOutUsage.fs.cbShaderMask |= (channelMask << (4 * location));
+  */
 
   // Construct exported fragment colors
   if (compCount == 1)
@@ -588,7 +591,7 @@ Value *LowerFragColorExport::getOutputValue(ArrayRef<Value *> expFragColor, unsi
 
 // =====================================================================================================================
 // Collects the information needed to generate the export instructions for all of the generic outputs of the fragment
-// shader fragEntryPoint.  This infomration is stored in m_info and m_exportValues.
+// shader fragEntryPoint.  This information is stored in m_info and m_exportValues.
 //
 // @param fragEntryPoint : The fragment shader to which we should add the export instructions.
 // @param builder : The builder object that will be used to create new instructions.

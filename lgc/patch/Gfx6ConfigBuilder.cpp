@@ -922,9 +922,11 @@ void ConfigBuilder::buildPsRegConfig(ShaderStage shaderStage, T *pConfig) {
     depthExpFmt = EXP_FORMAT_32_R;
   SET_REG_FIELD(&pConfig->psRegs, SPI_SHADER_Z_FORMAT, Z_EXPORT_FORMAT, depthExpFmt);
 
+  /*
   unsigned cbShaderMask = resUsage->inOutUsage.fs.cbShaderMask;
   cbShaderMask = resUsage->inOutUsage.fs.isNullFs ? 0 : cbShaderMask;
   SET_REG(&pConfig->psRegs, CB_SHADER_MASK, cbShaderMask);
+  */
   SET_REG_FIELD(&pConfig->psRegs, SPI_PS_IN_CONTROL, NUM_INTERP, resUsage->inOutUsage.fs.interpInfo.size());
 
   unsigned pointCoordLoc = InvalidValue;
